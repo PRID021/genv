@@ -1,0 +1,35 @@
+# Python files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+*.env
+
+# Configuration files
+.genv.config
+
+# Backup files
+*.bak
+
+# IDE specific files
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.vscode/
+*.code-workspace
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
