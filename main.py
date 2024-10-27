@@ -3,11 +3,21 @@ import os
 import platform
 import re
 import subprocess
+import sys
 
 
 def read_config_file():
     """Read identity files from the specified config file."""
-    config_file_path = ".genv.config"
+    # Get the directory where the executable is located
+    if getattr(sys, "frozen", False):
+        # If the program is running as a bundled executable
+        config_file_path = os.path.join(os.path.dirname(sys.executable), ".genv.config")
+    else:
+        # If the program is running in a regular Python environment
+        config_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), ".genv.config"
+        )
+
     if os.path.exists(config_file_path):
         with open(config_file_path, "r") as f:
             return [line.strip() for line in f.readlines() if line.strip()]
