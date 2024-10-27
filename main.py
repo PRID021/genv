@@ -66,7 +66,6 @@ def write_ssh_config(file_path, config_data):
 
 def modify_identity_file(config, old_identity, new_identity):
     """Modify the IdentityFile path in the SSH config."""
-    # Use regex to find and replace the IdentityFile path
     pattern = re.compile(rf"IdentityFile\s+{re.escape(old_identity)}")
     updated_config = pattern.sub(f"IdentityFile {new_identity}", config)
     return updated_config
@@ -82,14 +81,12 @@ def update_identity_file_in_config(existing_config, identity_file):
 def start_ssh_agent():
     """Start the SSH agent and return its process ID."""
     try:
-        # Start the SSH agent
         result = subprocess.run(
             ["ssh-agent"], capture_output=True, text=True, check=True
         )
-        # Parse the output to set the necessary environment variables
         for line in result.stdout.splitlines():
             if "SSH_AUTH_SOCK" in line or "SSH_AGENT_PID" in line:
-                print(line)  # Print to help user export these variables
+                print(line)
     except subprocess.CalledProcessError:
         logging.error("Failed to start the SSH agent.")
 
@@ -105,10 +102,25 @@ def add_identity_to_ssh_agent(identity_file):
 
 def restart_ssh_agent():
     """Restart the SSH agent."""
-    # Kill any existing SSH agent
-    subprocess.run(
-        ["pkill", "ssh-agent"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    system = platform.system()
+    try:
+        if system == "Windows":
+            # Kill any existing SSH agent on Windows
+            subprocess.run(
+                ["TASKKILL", "/F", "/IM", "ssh-agent.exe"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            logging.info("SSH agent terminated.")
+        elif system == "Darwin":  # macOS
+            # Kill any existing SSH agent on macOS
+            subprocess.run(
+                ["pkill", "ssh-agent"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            logging.info("SSH agent terminated.")
+    except Exception as e:
+        logging.error(f"Failed to kill SSH agent: {e}")
+
     start_ssh_agent()
 
 
@@ -129,29 +141,22 @@ def main():
         return
     logging.info(f"Found identity files: {identity_files}")
 
-    # Get the SSH config path and identity file paths based on the OS
     ssh_config_path, identity_file_paths = get_ssh_config_path(identity_files)
-
-    # Read the current SSH config file
     existing_config = read_ssh_config(ssh_config_path)
 
     if not existing_config.strip():
         logging.warning("No existing SSH config found.")
         return
 
-    # Set permissions for the SSH config file
     set_permissions(ssh_config_path)
 
-    # Set permissions for all identity files
     for identity_file in identity_file_paths:
         set_permissions(identity_file)
 
-    # Show available identity files to the user
     print("Select an identity file to use:")
     for index, identity_file in enumerate(identity_files):
         print(f"{index}: {identity_file}")
 
-    # Get user input
     try:
         selection = int(
             input("Enter the number of the identity file you want to use: ")
@@ -165,19 +170,15 @@ def main():
     selected_identity_file = identity_file_paths[selection]
     logging.info(f"Selected identity file: {selected_identity_file}")
 
-    # Update the identity file in the existing config
     updated_config = update_identity_file_in_config(
         existing_config, selected_identity_file
     )
 
-    # Write the updated config back to the file
     write_ssh_config(ssh_config_path, updated_config)
 
-    # Restart the SSH agent and add the selected identity file
     restart_ssh_agent()
     add_identity_to_ssh_agent(selected_identity_file)
 
-    # Print the updated information
     logging.info(f"Updated SSH config file at {ssh_config_path}")
     logging.info(f"The current IdentityFile in use is: {selected_identity_file}")
 
